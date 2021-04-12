@@ -6,70 +6,65 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os/exec"
 	"strings"
 )
 
 var (
 	baseURL  string = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output"
 	nacional string = baseURL + "/producto5/TotalesNacionales.csv"
+	comunal  string = baseURL + "/producto6/bulk/data.csv"
 )
 
 // CasosCovid is an object to save the results of the weeks requests
 type CasosCovid struct {
-	Fecha    []string
-	Nacional []string
-	RM       []string
+	Fecha       []string
+	Nacional    []string
+	RM          []string
+	Nunoa       []string
+	Providencia []string
+	Niquen      []string
+	Vallenar    []string
 }
 
 func main() {
 	resp, err := http.Get(nacional)
-	if err != nil {
-		log.Println("Error on response.\n[ERROR] -", err)
-	}
+	CheckErr("", err)
 	defer resp.Body.Close()
 
 	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
+	CheckErr("", err)
 
 	dataStr := string(data)
 	lines, err := StringToLines(dataStr)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
+	CheckErr("", err)
 
-	lastWeekDates := strings.Split(lines[0], ",")
-	lastweekCases := strings.Split(lines[7], ",")
+	nacionalFechas := strings.Split(lines[0], ",")
+	totalCases := strings.Split(lines[7], ",")
 
 	// initializes the struct
 	var casos *CasosCovid = new(CasosCovid)
 
 	for i := 1; i < 8; i++ {
 		// NACIONAL
-		nationalDates := lastWeekDates[len(lastWeekDates)-i]
-		nationalCases := lastweekCases[len(lastweekCases)-i][0:4]
+		nationalDates := nacionalFechas[len(nacionalFechas)-i]
+		nationalCases := totalCases[len(totalCases)-i][0:4]
 
 		// REGIONAL
 		fecha := nationalDates
 		regional := baseURL + "/producto4/" + fecha + "-CasosConfirmados-totalRegional.csv"
 
 		respRegional, err := http.Get(regional)
-		if err != nil {
-			log.Println("Error on response.\n[ERROR] -", err)
-		}
+		CheckErr("", err)
 		defer respRegional.Body.Close()
 
 		dataRegional, err := io.ReadAll(respRegional.Body)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
+		CheckErr("", err)
 
 		dataStrRegional := string(dataRegional)
 		linesRegional, err := StringToLines(dataStrRegional)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
+		CheckErr("", err)
+
 		regionalCases := strings.Split(linesRegional[7], ",")
 
 		// we append the results in the object casos
@@ -77,17 +72,75 @@ func main() {
 		casos.Nacional = append(casos.Nacional, nationalCases)
 		casos.RM = append(casos.RM, regionalCases[9])
 
+		// COMUNAL ACUMULADO
+		respComunal, err := http.Get(comunal)
+		CheckErr("", err)
+		defer respComunal.Body.Close()
+
+		dataComunal, err := io.ReadAll(respComunal.Body)
+		CheckErr("", err)
+
+		lookingUpDates := strings.Replace(nationalDates, "-", "/", -1)
+		grepDateBytes := Grep(lookingUpDates, dataComunal)
+
+		// Ñuñoa
+		grepNunoaBytes := Grep("Ñuñoa", grepDateBytes)
+		grepNunoaResult := string(grepNunoaBytes)
+		totalCasesNunoa := strings.Split(grepNunoaResult, ",")
+
+		if len(grepNunoaBytes) == 0 {
+			casos.Nunoa = append(casos.Nunoa, "-")
+		} else {
+			casos.Nunoa = append(casos.Nunoa, totalCasesNunoa[1][0:5])
+		}
+
+		// Providencia
+		grepProvBytes := Grep("Providencia", grepDateBytes)
+		grepProvResult := string(grepProvBytes)
+		totalCasesProv := strings.Split(grepProvResult, ",")
+
+		if len(grepProvBytes) == 0 {
+			casos.Providencia = append(casos.Providencia, "-")
+		} else {
+			casos.Providencia = append(casos.Providencia, totalCasesProv[1][0:4])
+		}
+
+		// Ñiquén
+		grepNiquenBytes := Grep("Ñiquén", grepDateBytes)
+		grepNiquenResult := string(grepNiquenBytes)
+		totalCasesNiquen := strings.Split(grepNiquenResult, ",")
+
+		if len(grepNiquenBytes) == 0 {
+			casos.Niquen = append(casos.Niquen, "-")
+		} else {
+			casos.Niquen = append(casos.Niquen, totalCasesNiquen[1][0:3])
+		}
+
+		// Vallenar
+		grepVallBytes := Grep("Vallenar", grepDateBytes)
+		grepVallResult := string(grepVallBytes)
+		totalCasesVall := strings.Split(grepVallResult, ",")
+
+		if len(grepVallBytes) == 0 {
+			casos.Vallenar = append(casos.Vallenar, "-")
+		} else {
+			casos.Vallenar = append(casos.Vallenar, totalCasesVall[1][0:4])
+		}
+
 	}
 
 	// we pretty print the results jeje
-	fmt.Printf("%10s %10s %6s\n", "Fecha", "Nacional", "RM")
-	fmt.Printf("%10s %10s %6s\n", casos.Fecha[0], casos.Nacional[0], casos.RM[0])
-	fmt.Printf("%10s %10s %6s\n", casos.Fecha[1], casos.Nacional[1], casos.RM[1])
-	fmt.Printf("%10s %10s %6s\n", casos.Fecha[2], casos.Nacional[2], casos.RM[2])
-	fmt.Printf("%10s %10s %6s\n", casos.Fecha[3], casos.Nacional[3], casos.RM[3])
-	fmt.Printf("%10s %10s %6s\n", casos.Fecha[4], casos.Nacional[4], casos.RM[4])
-	fmt.Printf("%10s %10s %6s\n", casos.Fecha[5], casos.Nacional[5], casos.RM[5])
-	fmt.Printf("%10s %10s %6s\n", casos.Fecha[6], casos.Nacional[6], casos.RM[6])
+	fmt.Println("-----------------------------------------------------------")
+	fmt.Printf("%10s %10s %6s %6s %6s %6s %8s\n", "Fecha", "Nacional", "RM", "Ñuñoa", "Provi", "Ñiquén", "Vallenar")
+	fmt.Println("-----------------------------------------------------------")
+	fmt.Printf("%10s %10s %6s %6s %6s %6s %8s\n", casos.Fecha[0], casos.Nacional[0], casos.RM[0], casos.Nunoa[0], casos.Providencia[0], casos.Niquen[0], casos.Vallenar[0])
+	fmt.Printf("%10s %10s %6s %6s %6s %6s %8s\n", casos.Fecha[1], casos.Nacional[1], casos.RM[1], casos.Nunoa[1], casos.Providencia[1], casos.Niquen[1], casos.Vallenar[1])
+	fmt.Printf("%10s %10s %6s %6s %6s %6s %8s\n", casos.Fecha[2], casos.Nacional[2], casos.RM[2], casos.Nunoa[2], casos.Providencia[2], casos.Niquen[2], casos.Vallenar[2])
+	fmt.Printf("%10s %10s %6s %6s %6s %6s %8s\n", casos.Fecha[3], casos.Nacional[3], casos.RM[3], casos.Nunoa[3], casos.Providencia[3], casos.Niquen[3], casos.Vallenar[3])
+	fmt.Printf("%10s %10s %6s %6s %6s %6s %8s\n", casos.Fecha[4], casos.Nacional[4], casos.RM[4], casos.Nunoa[4], casos.Providencia[4], casos.Niquen[4], casos.Vallenar[4])
+	fmt.Printf("%10s %10s %6s %6s %6s %6s %8s\n", casos.Fecha[5], casos.Nacional[5], casos.RM[5], casos.Nunoa[5], casos.Providencia[5], casos.Niquen[5], casos.Vallenar[5])
+	fmt.Printf("%10s %10s %6s %6s %6s %6s %8s\n", casos.Fecha[6], casos.Nacional[6], casos.RM[6], casos.Nunoa[6], casos.Providencia[6], casos.Niquen[6], casos.Vallenar[6])
+	fmt.Println("-----------------------------------------------------------")
 }
 
 // StringToLines reads lines from a string
@@ -98,4 +151,29 @@ func StringToLines(s string) (lines []string, err error) {
 	}
 	err = scanner.Err()
 	return
+}
+
+func Grep(pattern string, data []byte) []byte {
+	grep := exec.Command("grep", pattern)
+	grepIn, err := grep.StdinPipe()
+	CheckErr("", err)
+
+	grepOut, err := grep.StdoutPipe()
+	CheckErr("", err)
+
+	grep.Start()
+	grepIn.Write(data)
+	grepIn.Close()
+	grepBytes, err := io.ReadAll(grepOut)
+	CheckErr("", err)
+	grep.Wait()
+
+	return grepBytes
+}
+
+// CheckErr to handle error
+func CheckErr(str string, err error) {
+	if err != nil {
+		log.Fatal(str, err.Error())
+	}
 }
