@@ -81,51 +81,19 @@ func main() {
 		CheckErr("", err)
 
 		lookingUpDates := strings.Replace(nationalDates, "-", "/", -1)
-		grepDateBytes := Grep(lookingUpDates, dataComunal)
+		// grepDateBytes := Grep(lookingUpDates, dataComunal)
 
 		// Ñuñoa
-		grepNunoaBytes := Grep("Ñuñoa", grepDateBytes)
-		grepNunoaResult := string(grepNunoaBytes)
-		totalCasesNunoa := strings.Split(grepNunoaResult, ",")
-
-		if len(grepNunoaBytes) == 0 {
-			casos.Nunoa = append(casos.Nunoa, "-")
-		} else {
-			casos.Nunoa = append(casos.Nunoa, totalCasesNunoa[1][0:5])
-		}
+		casos.Nunoa = append(casos.Nunoa, Comuna("Ñuñoa", lookingUpDates, dataComunal))
 
 		// Providencia
-		grepProvBytes := Grep("Providencia", grepDateBytes)
-		grepProvResult := string(grepProvBytes)
-		totalCasesProv := strings.Split(grepProvResult, ",")
-
-		if len(grepProvBytes) == 0 {
-			casos.Providencia = append(casos.Providencia, "-")
-		} else {
-			casos.Providencia = append(casos.Providencia, totalCasesProv[1][0:4])
-		}
+		casos.Providencia = append(casos.Providencia, Comuna("Providencia", lookingUpDates, dataComunal))
 
 		// Ñiquén
-		grepNiquenBytes := Grep("Ñiquén", grepDateBytes)
-		grepNiquenResult := string(grepNiquenBytes)
-		totalCasesNiquen := strings.Split(grepNiquenResult, ",")
-
-		if len(grepNiquenBytes) == 0 {
-			casos.Niquen = append(casos.Niquen, "-")
-		} else {
-			casos.Niquen = append(casos.Niquen, totalCasesNiquen[1][0:3])
-		}
+		casos.Niquen = append(casos.Niquen, Comuna("Ñiquén", lookingUpDates, dataComunal))
 
 		// Vallenar
-		grepVallBytes := Grep("Vallenar", grepDateBytes)
-		grepVallResult := string(grepVallBytes)
-		totalCasesVall := strings.Split(grepVallResult, ",")
-
-		if len(grepVallBytes) == 0 {
-			casos.Vallenar = append(casos.Vallenar, "-")
-		} else {
-			casos.Vallenar = append(casos.Vallenar, totalCasesVall[1][0:4])
-		}
+		casos.Vallenar = append(casos.Vallenar, Comuna("Vallenar", lookingUpDates, dataComunal))
 
 	}
 
@@ -151,6 +119,21 @@ func StringToLines(s string) (lines []string, err error) {
 	}
 	err = scanner.Err()
 	return
+}
+
+func Comuna(comuna string, lookingUpDates string, dataComunal []byte) string {
+	grepDateBytes := Grep(lookingUpDates, dataComunal)
+	grepComunaBytes := Grep(comuna, grepDateBytes)
+	grepComunaResult := string(grepComunaBytes)
+	totalCasesComuna := strings.Split(grepComunaResult, ",")
+
+	var casosComuna string
+	if len(grepComunaBytes) == 0 {
+		casosComuna = "-"
+	} else {
+		casosComuna = totalCasesComuna[1][0 : len(totalCasesComuna[1])-2]
+	}
+	return casosComuna
 }
 
 func Grep(pattern string, data []byte) []byte {
