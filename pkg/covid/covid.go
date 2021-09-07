@@ -9,10 +9,11 @@ import (
 )
 
 const (
-	baseURL  string = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output"
-	nacional string = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto5/TotalesNacionales.csv"
-	regional string = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto4/%s-CasosConfirmados-totalRegional.csv"
-	comunal  string = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto6/bulk/data.csv"
+	baseURL    = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output"
+	nacional   = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto5/TotalesNacionales.csv"
+	regional   = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto4/%s-CasosConfirmados-totalRegional.csv"
+	comunal    = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto6/bulk/data.csv"
+	comunalDos = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto1/Covid-19_std.csv"
 )
 
 // CasosCovid is an object to save the results of the weeks requests
@@ -57,13 +58,13 @@ func Covid(daysFlag *int) *CasosCovid {
 		casos.RM = append(casos.RM, regionalCases[9])
 
 		// COMUNAL ACUMULADO
-		dataComunal := utils.RetrieveData(comunal)
-		lookingUpDates := strings.Replace(nationalDates, "-", "/", -1)
+		dataComunal := utils.RetrieveData(comunalDos)
+		// nationalDates := strings.Replace(nationalDates, "-", "/", -1)
 
-		casos.Nunoa = append(casos.Nunoa, datosmin.Comuna("Ñuñoa", lookingUpDates, dataComunal))
-		casos.Providencia = append(casos.Providencia, datosmin.Comuna("Providencia", lookingUpDates, dataComunal))
-		casos.Niquen = append(casos.Niquen, datosmin.Comuna("Ñiquén", lookingUpDates, dataComunal))
-		casos.Vallenar = append(casos.Vallenar, datosmin.Comuna("Vallenar", lookingUpDates, dataComunal))
+		casos.Nunoa = append(casos.Nunoa, datosmin.Comuna("Nunoa", nationalDates, dataComunal))
+		casos.Providencia = append(casos.Providencia, datosmin.Comuna("Providencia", nationalDates, dataComunal))
+		casos.Niquen = append(casos.Niquen, datosmin.Comuna("Niquen", nationalDates, dataComunal))
+		casos.Vallenar = append(casos.Vallenar, datosmin.Comuna("Vallenar", nationalDates, dataComunal))
 	}
 	return casos
 }

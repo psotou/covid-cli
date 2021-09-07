@@ -11,11 +11,10 @@ func Comuna(comuna string, lookingUpDates string, dataComunal []byte) string {
 	grepComunaResult := string(grepComunaBytes)
 	totalCasesComuna := strings.Split(grepComunaResult, ",")
 
-	var casosComuna string
+	// var casosComuna string
 	if len(grepComunaBytes) == 0 {
-		casosComuna = "-"
+		return "-"
 	} else {
-		casosComuna = totalCasesComuna[1][0 : len(totalCasesComuna[1])-2]
+		return totalCasesComuna[6][:len(totalCasesComuna[6])-3]
 	}
-	return casosComuna
 }
