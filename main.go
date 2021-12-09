@@ -1,25 +1,30 @@
 package main
 
 import (
-	"covid-data/pkg/covid"
 	"flag"
 	"fmt"
+	"log"
 )
 
-var daysFlag *int
+var (
+	days   *int
+	region *string
+	comuna *string
+)
 
 func main() {
-	daysFlag = flag.Int("d", 7, "number of days to show")
+	days = flag.Int("d", 7, "number of days to show")
+	region = flag.String("r", "metropolitana", "region to show")
+	comuna = flag.String("c", "nunoa", "comuna to show")
 	flag.Parse()
 
-	casos := covid.Covid(daysFlag)
-
-	// we pretty print the results jeje
-	fmt.Println("----------------------------------------------------------------")
-	fmt.Printf("%10s %10s %6s %8s %8s %8s %8s\n", "Fecha", "Nacional", "RM", "Ñuñoa", "Provi", "Ñiquén", "Vallenar")
-	fmt.Println("----------------------------------------------------------------")
-	for i := range casos.Fecha {
-		fmt.Printf("%10s %10s %6s %8s %8s %8s %8s\n", casos.Fecha[i], casos.Nacional[i], casos.RM[i], casos.Nunoa[i], casos.Providencia[i], casos.Niquen[i], casos.Vallenar[i])
+	casos, err := Covid(days, region, comuna)
+	if err != nil {
+		log.Fatal(err.Error())
 	}
-	fmt.Println("----------------------------------------------------------------")
+
+	fmt.Printf("%s %s %s\n", "Fecha", "Nacional", *region)
+	for i := range casos.Fechas {
+		fmt.Printf("%s %s %s\n", casos.Fechas[i], casos.Nacional[i], casos.Region[i])
+	}
 }
