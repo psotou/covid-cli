@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os/exec"
 	"strings"
 )
 
@@ -34,30 +33,10 @@ func StringToLines(s string) ([]string, error) {
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
-	err := scanner.Err()
-	return lines, err
+	return lines, scanner.Err()
 }
 
-func Grep(pattern string, data []byte) ([]byte, error) {
-	grep := exec.Command("grep", pattern)
-	grepIn, err := grep.StdinPipe()
-	if err != nil {
-		return nil, err
-	}
-
-	grepOut, err := grep.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-
-	grep.Start()
-	grepIn.Write(data)
-	grepIn.Close()
-	grepBytes, err := io.ReadAll(grepOut)
-	if err != nil {
-		return nil, err
-	}
-	grep.Wait()
-
-	return grepBytes, nil
+// LastValue returns the (n - pos) value of a given slice
+func LastValue(data []string, pos int) string {
+	return data[len(data)-pos]
 }

@@ -27,7 +27,8 @@ type Casos interface {
 	DataComunal(*string, *int) (CasosCovid, error)
 }
 
-// maps the regions with the v position in the object
+// maps the regions with the index position in the object
+// retrieved by the call to the region URL
 var regiones = map[string]int{
 	"arica":         1,
 	"tarapaca":      2,
@@ -55,10 +56,9 @@ func CovidData(url string) ([]string, error) {
 	return StringToLines(string(data))
 }
 
-// GetNacional retrieves all the data related to dates and new covid cases nation-wide
+// GetData retrieves all the data related to dates and new covid cases nation-wide
 func GetData() Casos {
-	url := FormatURL(nacional)
-	data, err := CovidData(url)
+	data, err := CovidData(FormatURL(nacional))
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -70,13 +70,15 @@ func GetData() Casos {
 }
 
 func (cc *CasosCovid) DataNacional(days *int) (CasosCovid, error) {
+	// since I'm using Fechas and Nacional as a reference to work on the rest of the field
+	// of the CasosCovid object, I cannot directly replace Fecha and Nacional fields
+	// as done in the following DataNacional and DataComunal methods
 	fechasRange := []string{}
 	casosRange := []string{}
 	for i := 1; i < *days+1; i++ {
-		fechasRange = append(fechasRange, cc.Fechas[len(cc.Fechas)-i])
-		casosRange = append(casosRange, cc.Nacional[len(cc.Nacional)-i])
+		fechasRange = append(fechasRange, LastValue(cc.Fechas, i))
+		casosRange = append(casosRange, LastValue(cc.Nacional, i))
 	}
-
 	return CasosCovid{
 		Fechas:   fechasRange,
 		Nacional: casosRange,
@@ -84,54 +86,53 @@ func (cc *CasosCovid) DataNacional(days *int) (CasosCovid, error) {
 }
 
 func (cc *CasosCovid) DataRegional(region *string, days *int) (CasosCovid, error) {
-	casosRegional := []string{}
 	for i := 1; i < *days+1; i++ {
-		url := FormatURL(fmt.Sprintf(regional, cc.Fechas[len(cc.Fechas)-i]))
-		dataRegional, err := CovidData(url)
+		url := FormatURL(fmt.Sprintf(regional, LastValue(cc.Fechas, i)))
+		data, err := CovidData(url)
 		if err != nil {
-			return CasosCovid{}, fmt.Errorf("error retrieving regional data for the date %s", cc.Fechas[len(cc.Fechas)-i])
+			return CasosCovid{}, fmt.Errorf("error retrieving regional data for the date %s", LastValue(cc.Fechas, i))
 		}
-		// r is the number associated to the region
+		// r is the number associated with the region
 		r := regiones[*region]
 		// the 9th position return the values for Casos Nuevos Totales
-		casosRegional = append(casosRegional, strings.Split(dataRegional[r], ",")[9])
+		cc.Region = append(cc.Region, strings.Split(data[r], ",")[9])
 	}
-
-	return CasosCovid{
-		Region: casosRegional,
-	}, nil
+	return *cc, nil
 }
 
 func (cc *CasosCovid) DataComunal(comuna *string, days *int) (CasosCovid, error) {
-	url := FormatURL(comunal)
-	data, err := CovidData(url)
+	data, err := CovidData(FormatURL(comunal))
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	casosComuna := []string{}
 	for _, v := range data {
 		for i := 1; i < *days+1; i++ {
-			fecha := cc.Fechas[len(cc.Fechas)-i]
+			fecha := LastValue(cc.Fechas, i)
 			if strings.Contains(v, fecha) && strings.Contains(v, strings.Title(*comuna)) {
-				// casosComuna = append(casosComuna, strings.Split(v, ","))
-				casosComuna = append(casosComuna, v)
+				cc.Comuna = append(cc.Comuna, v)
 			}
 		}
 	}
-	return CasosCovid{
-		Comuna: casosComuna,
-	}, nil
+	return *cc, nil
 }
 
-func Covid(days *int, region, comuna *string) (CasosCovid, error) {
+func CovidRegion(days *int, region *string) (CasosCovid, error) {
 	nacional, _ := GetData().DataNacional(days)
 	regional, _ := GetData().DataRegional(region, days)
-	comunal, _ := GetData().DataComunal(comuna, days)
 
 	return CasosCovid{
 		Fechas:   nacional.Fechas,
 		Nacional: nacional.Nacional,
 		Region:   regional.Region,
-		Comuna:   comunal.Comuna,
 	}, nil
+}
+
+func CovidComuna(days *int, comuna *string) (CasosCovid, error) {
+	comunal, _ := GetData().DataComunal(comuna, days)
+	casos := CasosCovid{}
+	for _, v := range comunal.Comuna {
+		casos.Fechas = append(casos.Fechas, strings.Split(v, ",")[5])
+		casos.Comuna = append(casos.Comuna, strings.Split(v, ",")[6])
+	}
+	return casos, nil
 }
