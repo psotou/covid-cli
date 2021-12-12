@@ -43,3 +43,9 @@ covid región --days 12 --name nuble
 ```
 
 **Nota:** no importa el orden de lo subcomando, es decir, bien podría ir primero `--name`. Además, se puede usar con un guión (por ejemplo, `-name`) si se prefiere.
+
+## TO-DO
+
++ [ ] Agregar tests!
++ [ ] Agegar Github Action
++ [ ] Agregar paquetes para win y linux
