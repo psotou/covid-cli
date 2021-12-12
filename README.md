@@ -39,7 +39,7 @@ covid comuna --days 12 --name niquen
 Y para conocer lo datos de los últimos 12 días para la región del Ñuble:
 
 ```bash
-covid región --days 12 --name nuble
+covid region --days 12 --name nuble
 ```
 
 **Nota:** no importa el orden de lo subcomando, es decir, bien podría ir primero `--name`. Además, se puede usar con un guión (por ejemplo, `-name`) si se prefiere.
