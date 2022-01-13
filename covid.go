@@ -97,8 +97,9 @@ func (cc *CasosCovid) DataRegional(region *string, days *int) (CasosCovid, error
 		}
 		// r is the number associated with the region
 		r := regiones[*region]
-		// the 9th position return the values for Casos Nuevos Totales
-		cc.Region = append(cc.Region, strings.Split(data[r], ",")[9])
+		// the 8th position return the values for Casos Nuevos Totales
+		// which is the sum of the Casos Nuevos con Síntomas, Casos Nuevos sin Síntomas, Casos Nuevos Reportados por Laboratorio
+		cc.Region = append(cc.Region, strings.Split(data[r], ",")[8])
 	}
 	return *cc, nil
 }
