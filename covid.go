@@ -73,9 +73,10 @@ func GetData() Casos {
 }
 
 func (cc *CasosCovid) DataNacional(days *int) (CasosCovid, error) {
-	// since I'm using Fechas and Nacional as a reference to work on the rest of the field
+	// since I'm using Fechas and Nacional as a reference to work on the rest of the fields
 	// of the CasosCovid object, I cannot directly replace Fecha and Nacional fields
-	// as done in the following DataNacional and DataComunal methods
+	// as done in the following DataRegional and DataComunal methods. So for this method I simply
+	// take the last n Fechas and Casos Nacional from the CasosCovid object
 	fechasRange := []string{}
 	casosRange := []string{}
 	for i := 1; i < *days+1; i++ {
