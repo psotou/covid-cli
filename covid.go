@@ -135,9 +135,11 @@ func CovidRegion(days *int, region *string) (CasosCovid, error) {
 func CovidComuna(days *int, comuna *string) (CasosCovid, error) {
 	comunal, _ := GetData().DataComunal(comuna, days)
 	casos := CasosCovid{}
-	for _, v := range comunal.Comuna {
-		casos.Fechas = append(casos.Fechas, strings.Split(v, ",")[5])
-		casos.Comuna = append(casos.Comuna, strings.Split(v, ",")[6])
+
+	// inverse looping to return the last date first
+	for i := len(comunal.Comuna) - 1; i >= 0; i-- {
+		casos.Fechas = append(casos.Fechas, strings.Split(comunal.Comuna[i], ",")[5])
+		casos.Comuna = append(casos.Comuna, strings.Split(comunal.Comuna[i], ",")[6])
 	}
 	return casos, nil
 }

@@ -49,7 +49,7 @@ func main() {
 		title.Printf("%s: %s\n", "Comuna", comuna)
 		fields.Printf("%10s %6s\n", "Fecha", "Casos")
 		// prints in reverse since the Comuna object return the data en in reverse order
-		for i := len(casos.Fechas) - 1; i >= 0; i-- {
+		for i := range casos.Fechas {
 			comunal, _ := strconv.ParseFloat(casos.Comuna[i], 64)
 			fmt.Printf("%10s %6.f\n", casos.Fechas[i], comunal)
 		}
