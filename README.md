@@ -72,7 +72,7 @@ covid comuna -days 12 -name niquen
 Para el segundo caso, tomemos la comuna de San Carlos, en donde corremos:
 
 ```bash
-covid comunas -days 12 -name 'san carlos'
+covid comuna -days 12 -name 'san carlos'
 ```
 
 **Nota:** no importa el orden de lo subcomando, es decir, bien podría ir primero `-name`.
