@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/fatih/color"
 )
@@ -13,9 +12,6 @@ var (
 	days   int
 	region string
 	comuna string
-)
-
-var (
 	title  = color.New(color.FgWhite, color.Bold).Add(color.Underline)
 	fields = color.New(color.FgWhite, color.Bold)
 )
@@ -34,28 +30,25 @@ func main() {
 	switch args[0] {
 	case "region":
 		regionCmd.Parse(args[1:])
-		casos, _ := CovidRegion(&days, &region)
+		casos, _ := NacionalRegional(&days, &region)
+
 		title.Printf("%s: %s\n", "Región", region)
 		fields.Printf("%10s %9s %6s %6s\n", "Fecha", "Nacional", "Casos", "%")
 		for i := range casos.Fechas {
-			nacional, _ := strconv.ParseFloat(casos.Nacional[i], 64)
-			region, _ := strconv.ParseFloat(casos.Region[i], 64)
-			asPer := (region / nacional) * 100.0
-			fmt.Printf("%10s %9.f %6s %6.1f\n", casos.Fechas[i], nacional, casos.Region[i], asPer)
+			asPer := (casos.Region[i] / casos.Nacional[i]) * 100.0
+			fmt.Printf("%10s %9.f %6.f %6.1f\n", casos.Fechas[i], casos.Nacional[i], casos.Region[i], asPer)
 		}
 	case "comuna":
 		comunaCmd.Parse(args[1:])
-		casos, _ := CovidComuna(&days, &comuna)
+		casos, _ := Comunal(&days, &comuna)
+
 		title.Printf("%s: %s\n", "Comuna", comuna)
 		fields.Printf("%10s %6s %4s\n", "Fecha", "Casos", "Delta")
-		// prints in reverse since the Comuna object return the data en in reverse order
 		for i := range casos.Fechas {
-			comunal, _ := strconv.ParseFloat(casos.Comuna[i], 64)
-			if i+1 < len(casos.Comuna) && len(casos.Comuna) > 1 && casos.Comuna[i] != "" {
-				comunalPrev, _ := strconv.ParseFloat(casos.Comuna[i+1], 64)
-				fmt.Printf("%10s %6.f %5.f\n", casos.Fechas[i], comunal, comunal-comunalPrev)
+			if i+1 < len(casos.Comuna) && len(casos.Comuna) > 1 && casos.Comuna[i] != 0 {
+				fmt.Printf("%10s %6.f %5.f\n", casos.Fechas[i], casos.Comuna[i], casos.Comuna[i]-casos.Comuna[i+1])
 			} else {
-				fmt.Printf("%10s %6.f %5s\n", casos.Fechas[i], comunal, "--")
+				fmt.Printf("%10s %6.f %5s\n", casos.Fechas[i], casos.Comuna[i], "--")
 			}
 		}
 	default:

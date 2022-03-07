@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 )
 
@@ -16,18 +18,15 @@ const (
 	comunal  = "producto1/Covid-19_std.csv"
 )
 
-// CasosCovid is an object to save the results of the weeks requests
 type CasosCovid struct {
 	Fechas   []string
-	Nacional []string
-	Region   []string
-	Comuna   []string
+	Nacional []float64
+	Region   []float64
 }
 
-type Casos interface {
-	DataNacional(*int) (CasosCovid, error)
-	DataRegional(*string, *int) (CasosCovid, error)
-	DataComunal(*string, *int) (CasosCovid, error)
+type CasosComuna struct {
+	Fechas []string
+	Comuna []float64
 }
 
 // maps the regions with the index position in the object
@@ -59,87 +58,78 @@ func CovidData(url string) ([]string, error) {
 	return StringToLines(string(data))
 }
 
-// GetData retrieves all the data related to dates and new covid cases nation-wide
-func GetData() Casos {
+// BaseData works as a sort of constructor that initializes the CasosCovid struct and populates it
+// with the Fechas and Nacional number of covid cases according to the given number of days
+func BaseData(days int) *CasosCovid {
 	data, err := CovidData(FormatURL(nacional))
 	if err != nil {
 		log.Fatalf(err.Error())
+		os.Exit(1)
 	}
-
 	return &CasosCovid{
-		Fechas:   strings.Split(data[0], ","),
-		Nacional: strings.Split(data[7], ","),
+		Fechas:   LastValuesSlice(strings.Split(data[0], ","), days),
+		Nacional: StrSlcToFloatSlc(LastValuesSlice(strings.Split(data[7], ","), days)),
 	}
 }
 
-func (cc *CasosCovid) DataNacional(days *int) (CasosCovid, error) {
-	// since I'm using Fechas and Nacional as a reference to work on the rest of the fields
-	// of the CasosCovid object, I cannot directly replace Fecha and Nacional fields
-	// as done in the following DataRegional and DataComunal methods. So for this method I simply
-	// take the last n Fechas and Casos Nacional from the CasosCovid object
-	fechasRange := []string{}
-	casosRange := []string{}
-	for i := 1; i < *days+1; i++ {
-		fechasRange = append(fechasRange, LastValue(cc.Fechas, i))
-		casosRange = append(casosRange, LastValue(cc.Nacional, i))
-	}
-	return CasosCovid{
-		Fechas:   fechasRange,
-		Nacional: casosRange,
-	}, nil
-}
-
-func (cc *CasosCovid) DataRegional(region *string, days *int) (CasosCovid, error) {
-	for i := 1; i < *days+1; i++ {
+// AddDataRegional method adds upon BaseData object the corresponding number of cases according to a given region
+func (cc *CasosCovid) AddsRegional(region *string) (CasosCovid, error) {
+	for i := 1; i < len(cc.Fechas)+1; i++ {
 		url := FormatURL(fmt.Sprintf(regional, LastValue(cc.Fechas, i)))
 		data, err := CovidData(url)
 		if err != nil {
-			return CasosCovid{}, fmt.Errorf("error retrieving regional data for the date %s", LastValue(cc.Fechas, i))
+			return CasosCovid{}, err
 		}
 		// r is the number associated with the region
 		r := regiones[*region]
 		// the 8th position return the values for Casos Nuevos Totales
 		// which is the sum of the Casos Nuevos con Síntomas, Casos Nuevos sin Síntomas, Casos Nuevos Reportados por Laboratorio
-		cc.Region = append(cc.Region, strings.Split(data[r], ",")[8])
+		region, _ := strconv.ParseFloat(strings.Split(data[r], ",")[8], 64)
+		cc.Region = append(cc.Region, region)
 	}
 	return *cc, nil
 }
 
-func (cc *CasosCovid) DataComunal(comuna *string, days *int) (CasosCovid, error) {
+func (cc *CasosCovid) DataComunal(comuna *string) (CasosComuna, error) {
 	data, err := CovidData(FormatURL(comunal))
 	if err != nil {
-		log.Fatalf(err.Error())
+		return CasosComuna{}, err
 	}
+	casosComuna := CasosComuna{}
 	for _, v := range data {
-		for i := 1; i < *days+1; i++ {
+		for i := 1; i < len(cc.Fechas)+1; i++ {
 			fecha := LastValue(cc.Fechas, i)
 			if strings.Contains(v, fecha) && strings.Contains(v, strings.Title(*comuna)) {
-				cc.Comuna = append(cc.Comuna, v)
+				casosComuna.Fechas = append(casosComuna.Fechas, strings.Split(v, ",")[5])
+				comuna, _ := strconv.ParseFloat(strings.Split(v, ",")[6], 64)
+				casosComuna.Comuna = append(casosComuna.Comuna, comuna)
 			}
 		}
 	}
-	return *cc, nil
+	return casosComuna, nil
 }
 
-func CovidRegion(days *int, region *string) (CasosCovid, error) {
-	nacional, _ := GetData().DataNacional(days)
-	regional, _ := GetData().DataRegional(region, days)
-
-	return CasosCovid{
-		Fechas:   nacional.Fechas,
-		Nacional: nacional.Nacional,
-		Region:   regional.Region,
-	}, nil
+func NacionalRegional(days *int, region *string) (CasosCovid, error) {
+	nacionalRegional, err := BaseData(*days).AddsRegional(region)
+	if err != nil {
+		return CasosCovid{}, err
+	}
+	return nacionalRegional, nil
 }
 
-func CovidComuna(days *int, comuna *string) (CasosCovid, error) {
-	comunal, _ := GetData().DataComunal(comuna, days)
-	casos := CasosCovid{}
+// TODO: I'm not much of fun of allocating a new CasosComuna struct just to reverse the print order.
+// It should be a better way...
+func Comunal(days *int, comuna *string) (CasosComuna, error) {
+	comunal, err := BaseData(*days).DataComunal(comuna)
+	if err != nil {
+		return CasosComuna{}, err
+	}
+	casos := CasosComuna{}
 
 	// inverse looping to return the last date first
 	for i := len(comunal.Comuna) - 1; i >= 0; i-- {
-		casos.Fechas = append(casos.Fechas, strings.Split(comunal.Comuna[i], ",")[5])
-		casos.Comuna = append(casos.Comuna, strings.Split(comunal.Comuna[i], ",")[6])
+		casos.Fechas = append(casos.Fechas, comunal.Fechas[i])
+		casos.Comuna = append(casos.Comuna, comunal.Comuna[i])
 	}
 	return casos, nil
 }
@@ -159,7 +149,6 @@ func RetrieveData(url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return data, nil
 }
 
@@ -172,7 +161,24 @@ func StringToLines(s string) ([]string, error) {
 	return lines, scanner.Err()
 }
 
-// LastValue returns the (n - pos) value of a given slice
+// LastValue returns the (n - pos) value of a given slice starting from the end
 func LastValue(data []string, pos int) string {
 	return data[len(data)-pos]
+}
+
+func LastValuesSlice(data []string, values int) []string {
+	return data[len(data)-values:]
+}
+
+func StrSlcToFloatSlc(slc []string) []float64 {
+	fSlc := []float64{}
+	for _, val := range slc {
+		fVal, err := strconv.ParseFloat(val, 64)
+		if err != nil {
+			log.Fatalf(err.Error())
+			os.Exit(1)
+		}
+		fSlc = append(fSlc, fVal)
+	}
+	return fSlc
 }
