@@ -47,11 +47,16 @@ func main() {
 		comunaCmd.Parse(args[1:])
 		casos, _ := CovidComuna(&days, &comuna)
 		title.Printf("%s: %s\n", "Comuna", comuna)
-		fields.Printf("%10s %6s\n", "Fecha", "Casos")
+		fields.Printf("%10s %6s %4s\n", "Fecha", "Casos", "Delta")
 		// prints in reverse since the Comuna object return the data en in reverse order
 		for i := range casos.Fechas {
 			comunal, _ := strconv.ParseFloat(casos.Comuna[i], 64)
-			fmt.Printf("%10s %6.f\n", casos.Fechas[i], comunal)
+			if i+1 < len(casos.Comuna) && len(casos.Comuna) > 1 && casos.Comuna[i] != "" {
+				comunalPrev, _ := strconv.ParseFloat(casos.Comuna[i+1], 64)
+				fmt.Printf("%10s %6.f %5.f\n", casos.Fechas[i], comunal, comunal-comunalPrev)
+			} else {
+				fmt.Printf("%10s %6.f %5s\n", casos.Fechas[i], comunal, "--")
+			}
 		}
 	default:
 		flag.PrintDefaults()
