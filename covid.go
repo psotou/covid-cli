@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/fatih/color"
 )
 
 const (
@@ -15,6 +17,11 @@ const (
 	nacional = "producto5/TotalesNacionales.csv"
 	regional = "producto4/%s-CasosConfirmados-totalRegional.csv"
 	comunal  = "producto1/Covid-19_std.csv"
+)
+
+var (
+	title  = color.New(color.FgWhite, color.Bold).Add(color.Underline)
+	fields = color.New(color.FgWhite, color.Bold)
 )
 
 type CasosCovid struct {
@@ -28,8 +35,7 @@ type CasosComuna struct {
 	Comuna []float64
 }
 
-// maps the regions with the index position in the object
-// retrieved by the call to the region URL
+// maps the regions with the index position in the object retrieved by the call to the region URL
 var regiones = map[string]int{
 	"arica":         1,
 	"tarapaca":      2,
@@ -65,15 +71,15 @@ func BaseData(days int) *CasosCovid {
 		log.Fatalf(err.Error())
 	}
 	return &CasosCovid{
-		Fechas:   lastValuesSlice(strings.Split(data[0], ","), days),
-		Nacional: strSlcToFloatSlc(lastValuesSlice(strings.Split(data[7], ","), days)),
+		Fechas:   lastValuesFromSlice(strings.Split(data[0], ","), days),
+		Nacional: strSlcToFloatSlc(lastValuesFromSlice(strings.Split(data[7], ","), days)),
 	}
 }
 
 // AddDataRegional method adds upon BaseData object the corresponding number of cases according to a given region
-func (cc *CasosCovid) AddsRegional(region *string) (CasosCovid, error) {
+func (cc *CasosCovid) AddDataRegional(region *string) (CasosCovid, error) {
 	for i := 1; i < len(cc.Fechas)+1; i++ {
-		url := formatURL(fmt.Sprintf(regional, lastValue(cc.Fechas, i)))
+		url := formatURL(fmt.Sprintf(regional, valueAtNthPosFromEnd(cc.Fechas, i)))
 		data, err := CovidData(url)
 		if err != nil {
 			return CasosCovid{}, err
@@ -96,10 +102,11 @@ func (cc *CasosCovid) DataComunal(comuna *string) (CasosComuna, error) {
 	casosComuna := CasosComuna{}
 	for _, v := range data {
 		for i := 1; i < len(cc.Fechas)+1; i++ {
-			fecha := lastValue(cc.Fechas, i)
+			fecha := valueAtNthPosFromEnd(cc.Fechas, i)
 			if strings.Contains(v, fecha) && strings.Contains(v, strings.Title(*comuna)) {
-				casosComuna.Fechas = append(casosComuna.Fechas, strings.Split(v, ",")[5])
 				comuna, _ := strconv.ParseFloat(strings.Split(v, ",")[6], 64)
+
+				casosComuna.Fechas = append(casosComuna.Fechas, strings.Split(v, ",")[5])
 				casosComuna.Comuna = append(casosComuna.Comuna, comuna)
 			}
 		}
@@ -107,31 +114,30 @@ func (cc *CasosCovid) DataComunal(comuna *string) (CasosComuna, error) {
 	return casosComuna, nil
 }
 
-// TODO: refactor NacionalRegional and Comunal to printer functions that display the output
-// I desire, which is the current text I output in main
-func NacionalRegional(days *int, region *string) (CasosCovid, error) {
-	nacionalRegional, err := BaseData(*days).AddsRegional(region)
-	if err != nil {
-		return CasosCovid{}, err
+type Print struct{}
+
+func (p Print) DataNacionalRegional(casos CasosCovid, days *int, region *string) {
+	title.Printf("%s: %s\n", "Región", *region)
+	fields.Printf("%10s %9s %6s %6s\n", "Fecha", "Nacional", "Casos", "%")
+	// for some reason the order changed
+	for i := len(casos.Fechas) - 1; i >= 0; i-- {
+		regToNacPer := (casos.Region[i] / casos.Nacional[i]) * 100.0
+		fmt.Printf("%10s %9.f %6.f %6.1f\n", casos.Fechas[i], casos.Nacional[i], casos.Region[i], regToNacPer)
 	}
-	return nacionalRegional, nil
 }
 
-// TODO: I'm not much of fun of allocating a new CasosComuna struct just to reverse the print order.
-// It should be a better way...
-func Comunal(days *int, comuna *string) (CasosComuna, error) {
-	comunal, err := BaseData(*days).DataComunal(comuna)
-	if err != nil {
-		return CasosComuna{}, err
-	}
-	casos := CasosComuna{}
+func (p Print) DataComunal(casos CasosComuna, days *int, comuna *string) {
+	title.Printf("%s: %s\n", "Comuna", *comuna)
+	fields.Printf("%10s %6s %4s\n", "Fecha", "Casos", "Delta")
 
-	// inverse looping to return the last date first
-	for i := len(comunal.Comuna) - 1; i >= 0; i-- {
-		casos.Fechas = append(casos.Fechas, comunal.Fechas[i])
-		casos.Comuna = append(casos.Comuna, comunal.Comuna[i])
+	for i := len(casos.Fechas) - 1; i >= 0; i-- {
+		if len(casos.Comuna) > 0 && i > 0 {
+			delta := casos.Comuna[i] - casos.Comuna[i-1]
+			fmt.Printf("%10s %6.f %5.f\n", casos.Fechas[i], casos.Comuna[i], delta)
+		} else {
+			fmt.Printf("%10s %6.f %5s\n", casos.Fechas[i], casos.Comuna[i], "--")
+		}
 	}
-	return casos, nil
 }
 
 func formatURL(url string) string {
@@ -161,12 +167,12 @@ func stringToLines(s string) ([]string, error) {
 	return lines, scanner.Err()
 }
 
-// lastValue returns the (n - pos) value of a given slice starting from the end
-func lastValue(data []string, pos int) string {
+// returns the value of a slice at a position pos counting from end to start
+func valueAtNthPosFromEnd(data []string, pos int) string {
 	return data[len(data)-pos]
 }
 
-func lastValuesSlice(data []string, values int) []string {
+func lastValuesFromSlice(data []string, values int) []string {
 	return data[len(data)-values:]
 }
 
