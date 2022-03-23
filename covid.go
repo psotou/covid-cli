@@ -116,17 +116,17 @@ func (cc *CasosCovid) DataComunal(comuna *string) (CasosComuna, error) {
 
 type Print struct{}
 
-func (p Print) DataNacionalRegional(casos CasosCovid, days *int, region *string) {
+func (p *Print) DataNacionalRegional(casos CasosCovid, days *int, region *string) {
 	title.Printf("%s: %s\n", "Región", *region)
 	fields.Printf("%10s %9s %6s %6s\n", "Fecha", "Nacional", "Casos", "%")
-	// for some reason the order changed
+
 	for i := len(casos.Fechas) - 1; i >= 0; i-- {
 		regToNacPer := (casos.Region[i] / casos.Nacional[i]) * 100.0
 		fmt.Printf("%10s %9.f %6.f %6.1f\n", casos.Fechas[i], casos.Nacional[i], casos.Region[i], regToNacPer)
 	}
 }
 
-func (p Print) DataComunal(casos CasosComuna, days *int, comuna *string) {
+func (p *Print) DataComunal(casos CasosComuna, days *int, comuna *string) {
 	title.Printf("%s: %s\n", "Comuna", *comuna)
 	fields.Printf("%10s %6s %4s\n", "Fecha", "Casos", "Delta")
 

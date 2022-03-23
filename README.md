@@ -63,7 +63,7 @@ covid region -days 12 -name losrios
 
 ### Comunas
 
-Los nombres para las comunas son a little trickier, y se escriben siempre con minúscula y sin caracteres especiales (tildes o eñes). Para los nombres de comunas separados por espacios, el nombre se debe escribir como string. Como ejemplo del primer caso, tomemos la comuna de Ñiquén, en donde corremos:
+Los nombres de las comunas se deben escribir con minúscula y sin caracteres especiales (tildes o eñes). Para los nombres de comunas separados por espacios, el nombre se debe escribir como string. Como ejemplo del primer caso, tomemos la comuna de Ñiquén, en donde corremos:
 
 ```bash
 covid comuna -days 12 -name niquen
@@ -75,7 +75,7 @@ Para el segundo caso, tomemos la comuna de San Carlos, en donde corremos:
 covid comuna -days 12 -name 'san carlos'
 ```
 
-**Nota:** no importa el orden de lo subcomando, es decir, bien podría ir primero `-name`.
+**Nota:** no importa el orden del subcomando, es decir, bien podría ir primero `-name`.
 
 ## Ejemplos de uso
 
@@ -89,6 +89,7 @@ Comunas:
 
 ## TO-DO
 
++ [ ] Mejorar errores
 + [ ] Agregar tests!
 + [ ] Agegar Github Action
 + [ ] Agregar paquetes para win y linux
