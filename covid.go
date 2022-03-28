@@ -122,7 +122,10 @@ func (p *Print) DataNacionalRegional(casos CasosCovid, days *int, region *string
 
 	for i := len(casos.Fechas) - 1; i >= 0; i-- {
 		regToNacPer := (casos.Region[i] / casos.Nacional[i]) * 100.0
-		fmt.Printf("%10s %9.f %6.f %6.1f\n", casos.Fechas[i], casos.Nacional[i], casos.Region[i], regToNacPer)
+		// casos.Region slice is getting the values in a reversed order.
+		// Make sure to check this out (and really test it well), but for now I'll use this workaround
+		casosRegion := casos.Region[len(casos.Region)-1-i]
+		fmt.Printf("%10s %9.f %6.f %6.1f\n", casos.Fechas[i], casos.Nacional[i], casosRegion, regToNacPer)
 	}
 }
 
