@@ -77,7 +77,7 @@ covid comuna -days 12 -name 'san carlos'
 
 **Nota:** no importa el orden del subcomando, es decir, bien podría ir primero `-name`.
 
-## Ejemplos de uso
+## Usage
 
 Regiones:
 
