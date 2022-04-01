@@ -8,15 +8,16 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 )
 
 const (
-	baseURL  = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/%s"
-	nacional = "producto5/TotalesNacionales.csv"
-	regional = "producto4/%s-CasosConfirmados-totalRegional.csv"
-	comunal  = "producto1/Covid-19_std.csv"
+	baseURL     = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/%s"
+	nacionalStd = "producto5/TotalesNacionales_std.csv"
+	regional    = "producto4/%s-CasosConfirmados-totalRegional.csv"
+	comunal     = "producto1/Covid-19_std.csv"
 )
 
 var (
@@ -66,14 +67,24 @@ func CovidData(url string) ([]string, error) {
 // BaseData works as a sort of constructor that initializes the CasosCovid struct and populates it
 // with the Fechas and Nacional number of covid cases according to the given number of days
 func BaseData(days int) *CasosCovid {
-	data, err := CovidData(formatURL(nacional))
+	data, err := CovidData(formatURL(nacionalStd))
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	return &CasosCovid{
-		Fechas:   lastValuesFromSlice(strings.Split(data[0], ","), days),
-		Nacional: strSlcToFloatSlc(lastValuesFromSlice(strings.Split(data[7], ","), days)),
+
+	var casos CasosCovid
+	for i := len(data) - 1; i >= 0; i-- {
+		for j := 0; j < days; j++ {
+			date := time.Now().AddDate(0, 0, -j).Format("2006-01-02")
+			if strings.Contains(data[i], date) && strings.Contains(data[i], "Casos nuevos totales") {
+				casosInt, _ := strconv.ParseFloat(strings.Split(data[i], ",")[2], 64)
+				casos.Nacional = append(casos.Nacional, casosInt)
+				casos.Fechas = append(casos.Fechas, date)
+			}
+		}
 	}
+
+	return &casos
 }
 
 // AddDataRegional method adds upon BaseData object the corresponding number of cases according to a given region
@@ -120,10 +131,8 @@ func (p *Print) DataNacionalRegional(casos CasosCovid, days *int, region *string
 	title.Printf("%s: %s\n", "Región", *region)
 	fields.Printf("%10s %9s %6s %6s\n", "Fecha", "Nacional", "Casos", "%")
 
-	for i := len(casos.Fechas) - 1; i >= 0; i-- {
-		regToNacPer := (casos.Region[i] / casos.Nacional[i]) * 100.0
-		// casos.Region slice is getting the values in a reversed order.
-		// Make sure to check this out (and really test it well), but for now I'll use this workaround
+	for i := range casos.Fechas {
+		regToNacPer := (casos.Region[len(casos.Region)-1-i] / casos.Nacional[i]) * 100.0
 		casosRegion := casos.Region[len(casos.Region)-1-i]
 		fmt.Printf("%10s %9.f %6.f %6.1f\n", casos.Fechas[i], casos.Nacional[i], casosRegion, regToNacPer)
 	}
