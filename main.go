@@ -32,18 +32,16 @@ func main() {
 		if err != nil {
 			log.Fatalf(err.Error())
 		}
-		print.DataNacionalRegional(casos, &days, &region)
+		print.DataNacionalRegional(casos, &region)
 	case "comuna":
 		comunaCmd.Parse(args[1:])
 		casos, err := BaseData(days).DataComunal(&comuna)
 		if err != nil {
 			log.Fatalf(err.Error())
 		}
-		print.DataComunal(casos, &days, &comuna)
+		print.DataComunal(casos, &comuna)
 	default:
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-
-		//	fmt.Println(data(days))
 }

@@ -17,7 +17,7 @@ const (
 	baseURL     = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/%s"
 	nacionalStd = "producto5/TotalesNacionales_std.csv"
 	regional    = "producto4/%s-CasosConfirmados-totalRegional.csv"
-	comunal     = "producto1/Covid-19_std.csv"
+	comunalStd  = "producto1/Covid-19_std.csv"
 )
 
 var (
@@ -77,6 +77,7 @@ func BaseData(days int) *CasosCovid {
 		for j := 0; j < days; j++ {
 			date := time.Now().AddDate(0, 0, -j).Format("2006-01-02")
 			if strings.Contains(data[i], date) && strings.Contains(data[i], "Casos nuevos totales") {
+				// at 2nd position we found the value for the amount of Casos Nuevos Totales
 				casosInt, _ := strconv.ParseFloat(strings.Split(data[i], ",")[2], 64)
 				casos.Nacional = append(casos.Nacional, casosInt)
 				casos.Fechas = append(casos.Fechas, date)
@@ -106,18 +107,19 @@ func (cc *CasosCovid) AddDataRegional(region *string) (CasosCovid, error) {
 }
 
 func (cc *CasosCovid) DataComunal(comuna *string) (CasosComuna, error) {
-	data, err := CovidData(formatURL(comunal))
+	data, err := CovidData(formatURL(comunalStd))
 	if err != nil {
 		return CasosComuna{}, err
 	}
 	casosComuna := CasosComuna{}
-	for _, v := range data {
-		for i := 1; i < len(cc.Fechas)+1; i++ {
-			fecha := valueAtNthPosFromEnd(cc.Fechas, i)
-			if strings.Contains(v, fecha) && strings.Contains(v, strings.Title(*comuna)) {
-				comuna, _ := strconv.ParseFloat(strings.Split(v, ",")[6], 64)
-
-				casosComuna.Fechas = append(casosComuna.Fechas, strings.Split(v, ",")[5])
+	for i := len(data) - 1; i >= 0; i-- {
+		for j := 1; j < len(cc.Fechas)+1; j++ {
+			fecha := valueAtNthPosFromEnd(cc.Fechas, j)
+			if strings.Contains(data[i], fecha) && strings.Contains(data[i], strings.Title(*comuna)) {
+				// at 6th position we found the amount of cases per comuna
+				comuna, _ := strconv.ParseFloat(strings.Split(data[i], ",")[6], 64)
+				// at 5th position we found the dates
+				casosComuna.Fechas = append(casosComuna.Fechas, strings.Split(data[i], ",")[5])
 				casosComuna.Comuna = append(casosComuna.Comuna, comuna)
 			}
 		}
@@ -127,7 +129,7 @@ func (cc *CasosCovid) DataComunal(comuna *string) (CasosComuna, error) {
 
 type Print struct{}
 
-func (p *Print) DataNacionalRegional(casos CasosCovid, days *int, region *string) {
+func (p *Print) DataNacionalRegional(casos CasosCovid, region *string) {
 	title.Printf("%s: %s\n", "Región", *region)
 	fields.Printf("%10s %9s %6s %6s\n", "Fecha", "Nacional", "Casos", "%")
 
@@ -138,13 +140,13 @@ func (p *Print) DataNacionalRegional(casos CasosCovid, days *int, region *string
 	}
 }
 
-func (p *Print) DataComunal(casos CasosComuna, days *int, comuna *string) {
+func (p *Print) DataComunal(casos CasosComuna, comuna *string) {
 	title.Printf("%s: %s\n", "Comuna", *comuna)
 	fields.Printf("%10s %6s %4s\n", "Fecha", "Casos", "Delta")
 
-	for i := len(casos.Fechas) - 1; i >= 0; i-- {
-		if len(casos.Comuna) > 0 && i > 0 {
-			delta := casos.Comuna[i] - casos.Comuna[i-1]
+	for i := range casos.Comuna {
+		if i+1 < len(casos.Comuna) {
+			delta := casos.Comuna[i] - casos.Comuna[i+1]
 			fmt.Printf("%10s %6.f %5.f\n", casos.Fechas[i], casos.Comuna[i], delta)
 		} else {
 			fmt.Printf("%10s %6.f %5s\n", casos.Fechas[i], casos.Comuna[i], "--")
