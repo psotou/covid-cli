@@ -142,14 +142,14 @@ func (p *Print) DataNacionalRegional(casos CasosCovid, region *string) {
 
 func (p *Print) DataComunal(casos CasosComuna, comuna *string) {
 	title.Printf("%s: %s\n", "Comuna", *comuna)
-	fields.Printf("%10s %6s %4s\n", "Fecha", "Casos", "Delta")
+	fields.Printf("%10s %6s %4s\n", "Fecha", "Acumulados", "Delta")
 
 	for i := range casos.Comuna {
 		if i+1 < len(casos.Comuna) {
 			delta := casos.Comuna[i] - casos.Comuna[i+1]
-			fmt.Printf("%10s %6.f %5.f\n", casos.Fechas[i], casos.Comuna[i], delta)
+			fmt.Printf("%10s %10.f %5.f\n", casos.Fechas[i], casos.Comuna[i], delta)
 		} else {
-			fmt.Printf("%10s %6.f %5s\n", casos.Fechas[i], casos.Comuna[i], "--")
+			fmt.Printf("%10s %10.f %5s\n", casos.Fechas[i], casos.Comuna[i], "--")
 		}
 	}
 }
@@ -171,6 +171,11 @@ func retrieveData(url string) ([]byte, error) {
 	}
 	return data, nil
 }
+
+//func isInData(s []byte, url string) bool {
+//	data, _ := retrieveData(url)
+//	return bytes.Contains(data, s)
+//}
 
 func stringToLines(s string) ([]string, error) {
 	lines := []string{}
