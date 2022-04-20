@@ -25,14 +25,14 @@ func Run() error {
 	switch cmd {
 	case "region":
 		regionFlagSet.Parse(args)
-		casos, err := BaseData(*regionDays).AddDataRegional(regionName)
+		casos, err := GetBaseData(*regionDays).AddDataRegional(regionName)
 		if err != nil {
 			return err
 		}
 		print.DataNacionalRegional(casos, regionName)
 	case "comuna":
 		comunaFlagSet.Parse(args)
-		casos, err := BaseData(*comunaDays).DataComunal(comunaName)
+		casos, err := GetBaseData(*comunaDays).DataComunal(comunaName)
 		if err != nil {
 			return err
 		}

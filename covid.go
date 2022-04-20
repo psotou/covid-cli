@@ -64,9 +64,9 @@ func CovidData(url string) ([]string, error) {
 	return stringToLines(string(data))
 }
 
-// BaseData works as a sort of constructor that initializes the CasosCovid struct and populates it
+// GetBaseData works as a sort of constructor that initializes the CasosCovid struct and populates it
 // with the Fechas and Nacional number of covid cases according to the given number of days
-func BaseData(days int) *CasosCovid {
+func GetBaseData(days int) *CasosCovid {
 	data, err := CovidData(formatURL(nacionalStd))
 	if err != nil {
 		log.Fatalf(err.Error())
